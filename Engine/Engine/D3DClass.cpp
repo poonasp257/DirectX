@@ -10,11 +10,14 @@ D3DClass::D3DClass()
 	m_depthStencilView = 0;
 	m_rasterState = 0;
 }
+
 D3DClass::D3DClass(const D3DClass& other)
 {
 }
+
 D3DClass::~D3DClass()
 {
+
 }
 
 bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool fullscreen,
@@ -24,7 +27,7 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	IDXGIFactory* factory;
 	IDXGIAdapter* adapter;
 	IDXGIOutput* adapterOutput;
-	unsigned int numModes, i, numerator, denominator, stringLength;
+	unsigned int numModes, i, numerator = 0, denominator = 0, stringLength;
 	DXGI_MODE_DESC* displayModeList;
 	DXGI_ADAPTER_DESC adapterDesc;
 	int error;
@@ -99,8 +102,7 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	// Store the dedicated video card memory in megabytes.
 	m_videoCardMemory = (int)(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
 	// Convert the name of the video card to a character array and store it.
-	error = wcstombs_s(&stringLength, m_videoCardDescription, adapterDesc.Description, (size_t)128);
-	wcstombs_s()
+	error = wcstombs_s((size_t*)&stringLength, m_videoCardDescription, (size_t)128, adapterDesc.Description, (size_t)128);
 	if (error != 0)
 	{
 		return false;
@@ -286,6 +288,24 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	D3DXMatrixIdentity(&m_worldMatrix);
 	// Create an orthographic projection matrix for 2D rendering.
 	D3DXMatrixOrthoLH(&m_orthoMatrix, (float)screenWidth, (float)screenHeight, screenNear, screenDepth);
+
+	char videoCardName[128] = {};
+	int memorySize = 0;
+	GetVideoCardInfo(videoCardName, memorySize);
+	
+	FILE* file = NULL;
+	file = fopen("VideoInfo.txt", "w");
+	if (!file) 
+	{
+		MessageBox(hwnd, L"fopen() error!", L"ERROR", MB_OK);
+	}
+	else
+	{
+		fprintf(file, "Video Card Name: %s\n", videoCardName);
+		fprintf(file, "Memory Amount: %d\n", memorySize);
+		fclose(file);
+	}
+
 	return true;
 }
 
