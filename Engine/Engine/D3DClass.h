@@ -1,5 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+// Filename: d3dclass.h
+////////////////////////////////////////////////////////////////////////////////
 #ifndef _D3DCLASS_H_
 #define _D3DCLASS_H_
+
+
 /////////////
 // LINKING //
 /////////////
@@ -7,6 +12,8 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dx11.lib")
 #pragma comment(lib, "d3dx10.lib")
+
+
 //////////////
 // INCLUDES //
 //////////////
@@ -14,7 +21,8 @@
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <d3dx10math.h>
-#include <stdio.h>
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: D3DClass
 ////////////////////////////////////////////////////////////////////////////////
@@ -27,6 +35,7 @@ public:
 
 	bool Initialize(int, int, bool, HWND, bool, float, float);
 	void Shutdown();
+	
 	void BeginScene(float, float, float, float);
 	void EndScene();
 
@@ -38,6 +47,7 @@ public:
 	void GetOrthoMatrix(D3DXMATRIX&);
 
 	void GetVideoCardInfo(char*, int&);
+
 private:
 	bool m_vsync_enabled;
 	int m_videoCardMemory;
@@ -54,4 +64,5 @@ private:
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_orthoMatrix;
 };
+
 #endif

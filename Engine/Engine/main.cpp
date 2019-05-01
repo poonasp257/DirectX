@@ -1,21 +1,33 @@
-#include "Systemclass.h"
+////////////////////////////////////////////////////////////////////////////////
+// Filename: main.cpp
+////////////////////////////////////////////////////////////////////////////////
+#include "systemclass.h"
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow)
 {
+	SystemClass* System;
+	bool result;
+	
+	
 	// Create the system object.
-	SystemClass* system = new SystemClass;
-	if (!system) return 0;
+	System = new SystemClass;
+	if(!System)
+	{
+		return 0;
+	}
 
 	// Initialize and run the system object.
-	bool result = system->Initialize();
-	if (result)
+	result = System->Initialize();
+	if(result)
 	{
-		system->Run();
+		System->Run();
 	}
 
 	// Shutdown and release the system object.
-	system->Shutdown();
-	delete system;
-	system = nullptr;
+	System->Shutdown();
+	delete System;
+	System = 0;
+
 	return 0;
 }

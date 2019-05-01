@@ -1,2 +1,0 @@
-Video Card Name: Intel(R) HD Graphics 620
-Memory Amount: 128
