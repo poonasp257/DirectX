@@ -13,6 +13,9 @@
 #include "modelclass.h"
 #include "lightshaderclass.h"
 #include "lightclass.h"
+#include "textureshaderclass.h"
+#include "bitmapclass.h"
+#include "textclass.h"
 
 #include <vector>
 
@@ -48,5 +51,8 @@ private:
 	std::vector<ModelClass*> m_Models;
 	LightShaderClass* m_LightShader;
 	LightClass* m_Light;
+	TextureShaderClass* m_TextureShader;
+	BitmapClass* m_Bitmap;
+	TextClass* m_Text;
 };
 #endif
