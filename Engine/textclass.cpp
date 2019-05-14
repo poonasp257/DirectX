@@ -2,7 +2,8 @@
 // Filename: textclass.cpp
 ///////////////////////////////////////////////////////////////////////////////
 #include "textclass.h"
-
+#include <stdlib.h>
+#include <string>
 
 TextClass::TextClass()
 {
@@ -69,18 +70,22 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		"Doll",
 		"Gun",
 		"Drawer",
-		"Wolf"
+		"Wolf",
+		"",
+		""
 	};
 	
-	const SentenceData datas[5] = {
+	const SentenceData datas[7] = {
 		{ 950, 170, 1.0f, 1.0f, 0.0f},
 		{ 690, 450, 0.0f, 0.0f, 1.0f},
 		{ 1230, 80, 0.0f, 1.0f, 0.0f},
 		{ 690, 150, 1.0f, 0.0f, 0.0f},
-		{ 1300, 450, 0.5f, 1.0f, 1.0f}
+		{ 1300, 450, 0.5f, 1.0f, 1.0f},
+		{ 20, 20, 1.0f, 1.0f, 1.0f},
+		{ 20, 40, 1.0f, 1.0f, 1.0f}
 	};
 
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 7; ++i)
 	{
 		SentenceType* sentence = new SentenceType;
 		// Initialize the first sentence.
@@ -89,6 +94,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		{
 			return false;
 		}
+		m_sentences.push_back(sentence);
 
 		result = UpdateSentence(sentence, modelNames[i],
 			datas[i].posX, datas[i].posY, datas[i].r, datas[i].g, datas[i].b, deviceContext);
@@ -254,7 +260,7 @@ bool TextClass::InitializeSentence(SentenceType** sentence, int maxLength, ID3D1
 }
 
 
-bool TextClass::UpdateSentence(SentenceType* sentence, char* text, int positionX, int positionY, float red, float green, float blue,
+bool TextClass::UpdateSentence(SentenceType* sentence, const char* text, int positionX, int positionY, float red, float green, float blue,
 							   ID3D11DeviceContext* deviceContext)
 {
 	int numLetters;
@@ -379,5 +385,46 @@ bool TextClass::RenderSentence(ID3D11DeviceContext* deviceContext, SentenceType*
 		false;
 	}
 
+	return true;
+}
+
+bool TextClass::SetMousePosition(int mouseX, int mouseY, ID3D11DeviceContext* deviceContext)
+{
+	char tempString[16];
+	char mouseString[16];
+	bool result;
+	SentenceType *item1, *item2;
+
+	item1 = m_sentences[5];
+	item2 = m_sentences[6];
+
+	// Convert the mouseX integer to string format.
+	_itoa_s(mouseX, tempString, 10);
+
+	// Setup the mouseX string.
+	strcpy_s(mouseString, "Mouse X: ");
+	strcat_s(mouseString, tempString);
+
+	// Update the sentence vertex buffer with the new string information.
+	result = UpdateSentence(item1, mouseString, 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
+	if (!result)
+	{
+		return false;
+	}
+
+	// Convert the mouseY integer to string format.
+	_itoa_s(mouseY, tempString, 10);
+
+	// Setup the mouseY string.
+	strcpy_s(mouseString, "Mouse Y: ");
+	strcat_s(mouseString, tempString);
+
+	// Update the sentence vertex buffer with the new string information.
+	result = UpdateSentence(item2, mouseString, 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
+	if (!result)
+	{
+		return false;
+	}
+		   
 	return true;
 }
