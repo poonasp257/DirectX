@@ -161,6 +161,7 @@
     <ClCompile Include="InputClass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ModelClass.cpp" />
+    <ClCompile Include="soundClass.cpp" />
     <ClCompile Include="SystemClass.cpp" />
     <ClCompile Include="LightClass.cpp" />
     <ClCompile Include="textclass.cpp" />
@@ -178,6 +179,7 @@
     <ClInclude Include="InputClass.h" />
     <ClInclude Include="LightClass.h" />
     <ClInclude Include="ModelClass.h" />
+    <ClInclude Include="soundClass.h" />
     <ClInclude Include="SystemClass.h" />
     <ClInclude Include="textclass.h" />
     <ClInclude Include="TextureClass.h" />
