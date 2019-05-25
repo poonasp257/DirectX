@@ -8,6 +8,15 @@ InputClass::InputClass()
 	m_directInput = 0;
 	m_keyboard = 0;
 	m_mouse = 0;
+
+	m_keyState = {
+		{ KeyCode::W,		DIK_W },
+		{ KeyCode::A,		DIK_A },
+		{ KeyCode::S,		DIK_S },
+		{ KeyCode::D,		DIK_D },
+		{ KeyCode::Escape, DIK_ESCAPE },
+		{ KeyCode::F1,		DIK_F1}
+	};
 }
 
 InputClass::InputClass(const InputClass& other)
@@ -140,6 +149,7 @@ bool InputClass::Frame()
 bool InputClass::ReadKeyboard()
 {
 	HRESULT result;
+
 	// Read the keyboard device.
 	result = m_keyboard->GetDeviceState(sizeof(m_keyboardState), (LPVOID)&m_keyboardState);
 	if (FAILED(result))
@@ -190,13 +200,48 @@ void InputClass::ProcessInput()
 	return;
 }
 
-bool InputClass::IsEscapePressed()
+bool InputClass::GetKey(KeyCode key)
 {
-	// Do a bitwise and on the keyboard state to check if the escape key is currently being pressed.
-	if (m_keyboardState[DIK_ESCAPE] & 0x80)
+	if (m_keyboardState[m_keyState[key]] & 0x80)
 	{
+		m_pressedKeys[m_keyState[key]] = 1;
 		return true;
 	}
+
+	m_pressedKeys[m_keyState[key]] = 0;
+	return false;
+}
+
+bool InputClass::GetKeyDown(KeyCode key)
+{
+	if (m_keyboardState[m_keyState[key]] & 0x80)
+	{
+		if (m_pressedKeys[m_keyState[key]] == 1) return false;
+		
+		m_pressedKeys[m_keyState[key]] = 1;
+		return true;
+	}
+
+	m_pressedKeys[m_keyState[key]] = 0;
+	return false;
+}
+
+bool InputClass::GetKeyUp(KeyCode key)
+{
+	if (m_keyboardState[m_keyState[key]] & 0x80)
+	{
+		m_pressedKeys[m_keyState[key]] = 1;
+		return false;
+	}
+	else 
+	{
+		if (m_pressedKeys[m_keyState[key]] == 1)
+		{
+			m_pressedKeys[m_keyState[key]] = 0;
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -204,5 +249,10 @@ void InputClass::GetMouseLocation(int& mouseX, int& mouseY)
 {
 	mouseX = m_mouseX;
 	mouseY = m_mouseY;
-	return;
+}
+
+void InputClass::GetMouseDeltaPosition(int& deltaX, int& deltaY)
+{
+	deltaX = m_mouseState.lX;
+	deltaY = m_mouseState.lY;
 }

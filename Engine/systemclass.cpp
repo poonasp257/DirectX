@@ -9,6 +9,11 @@ SystemClass::SystemClass()
 	m_Input = 0;
 	m_Graphics = 0;
 	m_Sound = 0;
+	m_Fps = 0;
+	m_Cpu = 0;
+	m_Timer = 0;
+	m_screenWidth = 0;
+	m_screenHeight = 0;
 }
 
 
@@ -24,16 +29,10 @@ SystemClass::~SystemClass()
 
 bool SystemClass::Initialize()
 {
-	int screenWidth, screenHeight;
 	bool result;
-
-
-	// Initialize the width and height of the screen to zero before sending the variables into the function.
-	screenWidth = 0;
-	screenHeight = 0;
-
+	
 	// Initialize the windows api.
-	InitializeWindows(screenWidth, screenHeight);
+	InitializeWindows(1024, 768);
 
 	// Create the input object.  This object will be used to handle reading the keyboard input from the user.
 	m_Input = new InputClass;
@@ -43,7 +42,7 @@ bool SystemClass::Initialize()
 	}
 
 	// Initialize the input object.
-	result = m_Input->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight);
+	result = m_Input->Initialize(m_hinstance, m_hwnd, m_screenWidth, m_screenHeight);
 	if (!result)
 	{
 		MessageBox(m_hwnd, L"Could not initialize the input object.", L"Error", MB_OK);
@@ -58,7 +57,7 @@ bool SystemClass::Initialize()
 	}
 
 	// Initialize the graphics object.
-	result = m_Graphics->Initialize(screenWidth, screenHeight, m_hwnd);
+	result = m_Graphics->Initialize(m_screenWidth, m_screenHeight, m_hwnd, m_Input);
 	if(!result)
 	{
 		return false;
@@ -78,12 +77,61 @@ bool SystemClass::Initialize()
 		return false;
 	}
 
+	// Create the fps object.
+	m_Fps = new FPSClass;
+	if (!m_Fps)
+	{
+		return false;
+	}
+	// Initialize the fps object.
+	m_Fps->Initialize();
+	// Create the cpu object.
+	m_Cpu = new CPUClass;
+	if (!m_Cpu)
+	{
+		return false;
+	}
+	// Initialize the cpu object.
+	m_Cpu->Initialize();
+	// Create the timer object.
+	m_Timer = new TimerClass;
+	if (!m_Timer)
+	{
+		return false;
+	}
+	// Initialize the timer object.
+	result = m_Timer->Initialize();
+	if (!result)
+	{
+		MessageBox(m_hwnd, L"Could not initialize the Timer object.", L"Error", MB_OK);
+		return false;
+	}
+
 	return true;
 }
 
-
 void SystemClass::Shutdown()
 {
+	// Release the timer object.
+	if (m_Timer)
+	{
+		delete m_Timer;
+		m_Timer = 0;
+	}
+	// Release the cpu object.
+	if (m_Cpu)
+	{
+		m_Cpu->Shutdown();
+		delete m_Cpu;
+		m_Cpu = 0;
+	}
+	// Release the fps object.
+	if (m_Fps)
+	{
+		delete m_Fps;
+		m_Fps = 0;
+	}
+
 	// Release the sound object.
 	if (m_Sound)
 	{
@@ -120,7 +168,6 @@ void SystemClass::Run()
 	MSG msg;
 	bool done, result;
 
-
 	// Initialize the message structure.
 	ZeroMemory(&msg, sizeof(MSG));
 	
@@ -150,7 +197,7 @@ void SystemClass::Run()
 			}
 
 			// Check if the user pressed escape and wants to quit.
-			if (m_Input->IsEscapePressed() == true)
+			if (m_Input->GetKeyDown(KeyCode::Escape))
 			{
 				done = true;
 			}
@@ -166,6 +213,11 @@ bool SystemClass::Frame()
 	bool result;
 	int mouseX, mouseY;
 
+	// Update the system stats.
+	m_Timer->Frame();
+	m_Fps->Frame();
+	m_Cpu->Frame();
+
 	// Do the input frame processing.
 	result = m_Input->Frame();
 	if (!result)
@@ -173,10 +225,9 @@ bool SystemClass::Frame()
 		return false;
 	}
 
-	// Get the location of the mouse from the input object,
-	m_Input->GetMouseLocation(mouseX, mouseY);
 	// Do the frame processing for the graphics object.
-	result = m_Graphics->Frame(mouseX, mouseY);
+	result = m_Graphics->Frame(m_Fps->GetFPS(), m_Timer->GetTime(), m_Cpu->GetCPUPercentage(),
+		m_screenWidth, m_screenHeight);
 	if(!result)
 	{
 		return false;
@@ -192,12 +243,11 @@ LRESULT CALLBACK SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam
 }
 
 
-void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight)
+void SystemClass::InitializeWindows(int screenWidth = 0, int screenHeight = 0)
 {
 	WNDCLASSEX wc;
 	DEVMODE dmScreenSettings;
 	int posX, posY;
-
 
 	// Get an external pointer to this object.	
 	ApplicationHandle = this;
@@ -226,8 +276,8 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight)
 	RegisterClassEx(&wc);
 
 	// Determine the resolution of the clients desktop screen.
-	screenWidth  = GetSystemMetrics(SM_CXSCREEN);
-	screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	m_screenWidth  = GetSystemMetrics(SM_CXSCREEN);
+	m_screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Setup the screen settings depending on whether it is running in full screen or in windowed mode.
 	if(FULL_SCREEN)
@@ -235,8 +285,8 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight)
 		// If full screen set the screen to maximum size of the users desktop and 32bit.
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize       = sizeof(dmScreenSettings);
-		dmScreenSettings.dmPelsWidth  = (unsigned long)screenWidth;
-		dmScreenSettings.dmPelsHeight = (unsigned long)screenHeight;
+		dmScreenSettings.dmPelsWidth  = (unsigned long)m_screenWidth;
+		dmScreenSettings.dmPelsHeight = (unsigned long)m_screenHeight;
 		dmScreenSettings.dmBitsPerPel = 32;			
 		dmScreenSettings.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
@@ -248,19 +298,19 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight)
 	}
 	else
 	{
-		// If windowed then set it to 800x600 resolution.
-		screenWidth  = 800;
-		screenHeight = 600;
+		// If windowed then set it to parameter resolution.
+		m_screenWidth = screenWidth;
+		m_screenHeight = screenHeight;
 
 		// Place the window in the middle of the screen.
-		posX = (GetSystemMetrics(SM_CXSCREEN) - screenWidth)  / 2;
-		posY = (GetSystemMetrics(SM_CYSCREEN) - screenHeight) / 2;
+		posX = (GetSystemMetrics(SM_CXSCREEN) - m_screenWidth)  / 2;
+		posY = (GetSystemMetrics(SM_CYSCREEN) - m_screenHeight) / 2;
 	}
 
 	// Create the window with the screen settings and get the handle to it.
 	m_hwnd = CreateWindowEx(WS_EX_APPWINDOW, m_applicationName, m_applicationName, 
 						    WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP,
-						    posX, posY, screenWidth, screenHeight, NULL, NULL, m_hinstance, NULL);
+						    posX, posY, m_screenWidth, m_screenHeight, NULL, NULL, m_hinstance, NULL);
 
 	// Bring the window up on the screen and set it as main focus.
 	ShowWindow(m_hwnd, SW_SHOW);

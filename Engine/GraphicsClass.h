@@ -16,17 +16,17 @@
 #include "textureshaderclass.h"
 #include "bitmapclass.h"
 #include "textclass.h"
+#include "InputClass.h"
 
 #include <vector>
 
 /////////////
 // GLOBALS //
 /////////////
-const bool FULL_SCREEN = true;
-const bool VSYNC_ENABLED = true;
+const bool FULL_SCREEN = false;
+const bool VSYNC_ENABLED = false;
 const float SCREEN_DEPTH = 1000.0f;
 const float SCREEN_NEAR = 0.1f;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: GraphicsClass
@@ -38,15 +38,16 @@ public:
 	GraphicsClass(const GraphicsClass&);
 	~GraphicsClass();
 
-	bool Initialize(int, int, HWND);
+	bool Initialize(int, int, HWND, InputClass*);
 	void Shutdown();
-	bool Frame(int, int);
+	bool Frame(int, float, int, int, int);
 
 private:
-	bool Render(float);
+	bool Render();
 
 private:
 	D3DClass* m_D3D;
+	InputClass* m_Input;
 	CameraClass* m_Camera;
 	std::vector<ModelClass*> m_Models;
 	LightShaderClass* m_LightShader;

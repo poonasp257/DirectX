@@ -23,6 +23,9 @@
 #include "inputclass.h"
 #include "graphicsclass.h"
 #include "soundClass.h"
+#include "fpsclass.h"
+#include "cpuclass.h"
+#include "timerclass.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +46,7 @@ public:
 
 private:
 	bool Frame();
-	void InitializeWindows(int&, int&);
+	void InitializeWindows(int, int);
 	void ShutdownWindows();
 
 private:
@@ -54,6 +57,12 @@ private:
 	InputClass* m_Input;
 	GraphicsClass* m_Graphics;
 	SoundClass* m_Sound;
+	FPSClass* m_Fps;
+	CPUClass* m_Cpu;
+	TimerClass* m_Timer;
+
+	int m_screenWidth;
+	int m_screenHeight;
 };
 
 

@@ -24,11 +24,12 @@ GraphicsClass::~GraphicsClass()
 {
 }
 
-
-bool GraphicsClass::Initialize(int screenWidth, int screenHeight, HWND hwnd)
+bool GraphicsClass::Initialize(int screenWidth, int screenHeight, HWND hwnd, InputClass* input)
 {
 	bool result;
 	D3DXMATRIX baseViewMatrix;
+
+	m_Input = input;
 
 	// Create the Direct3D object.
 	m_D3D = new D3DClass;
@@ -56,23 +57,19 @@ bool GraphicsClass::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	m_Camera->SetPosition(0.0f, 0.0f, -20.0f);
 
 	char* fileNames[] = {
-		"../Engine/data/sword.obj",
-		"../Engine/data/doll.obj",
-		"../Engine/data/M1911.obj",
-		"../Engine/data/drawer.obj",
-		"../Engine/data/wolf.obj"
+		"../Engine/data/human.obj",
+		"../Engine/data/N916MU.obj",
+		"../Engine/data/M8 Ape Marauder.obj"
 	};
 
 	WCHAR* textures[] = {
-		L"../Engine/data/t_sword.dds",
-		L"../Engine/data/t_doll.dds",
-		L"../Engine/data/t_M1911.dds",
-		L"../Engine/data/t_M1911.dds",
-		L"../Engine/data/t_M1911.dds"
+		L"../Engine/data/human.dds",
+		L"../Engine/data/N916MU.dds",
+		L"../Engine/data/M8 Ape Marauder.dds"
 	};
 
 	// Create the model object.
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 3; ++i)
 	{
 		ModelClass* newModel = new ModelClass;
 		result = newModel->Initialize(m_D3D->GetDevice(), fileNames[i], textures[i]);
@@ -158,7 +155,6 @@ bool GraphicsClass::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	return true;
 }
 
-
 void GraphicsClass::Shutdown()
 {
 	// Release the light object.
@@ -229,30 +225,60 @@ void GraphicsClass::Shutdown()
 	return;
 }
 
-bool GraphicsClass::Frame(int mouseX, int mouseY)
+bool GraphicsClass::Frame(int fps, float frameTime, int cpu, int screenWidth, int screenHeight)
 {
 	bool result;
-	static float rotation = 0.0f;
+	const float cameraSpeed = 20.0f;
 
-	// Update the rotation variable each frame.
-	rotation += (float)D3DX_PI * 0.005f;
-	if(rotation > 360.0f)
-	{
-		rotation -= 360.0f;
-	}
+	int deltaX, deltaY;
+	m_Input->GetMouseDeltaPosition(deltaX, deltaY);
 
+	m_Camera->Yaw(deltaX * frameTime * 0.0018f);
+	m_Camera->Pitch(deltaY * frameTime * 0.0018f);
 
+	if (m_Input->GetKey(KeyCode::W)) m_Camera->MoveForward(cameraSpeed * frameTime);
+	if (m_Input->GetKey(KeyCode::A)) m_Camera->Strafe(-cameraSpeed * frameTime);
+	if (m_Input->GetKey(KeyCode::S)) m_Camera->MoveForward(-cameraSpeed * frameTime);
+	if (m_Input->GetKey(KeyCode::D)) m_Camera->Strafe(cameraSpeed * frameTime);
 
+	if (m_Input->GetKeyDown(KeyCode::F1)) m_Text->TurnOnOffRenderInfo();
 
-	// Set the location of the mouse.
-	result = m_Text->SetMousePosition(mouseX, mouseY, m_D3D->GetDeviceContext());
+	// Set the frames per second.
+	result = m_Text->SetFPS(fps, m_D3D->GetDeviceContext());
 	if (!result)
 	{
 		return false;
 	}
-	
+	// Set the cpu usage.
+	result = m_Text->SetCPU(cpu, m_D3D->GetDeviceContext());
+	if (!result)
+	{
+		return false;
+	}
+
+	result = m_Text->SetNumOfObjects(m_Models.size(), m_D3D->GetDeviceContext());
+	if (!result)
+	{
+		return false;
+	}
+
+	int numOfPolygons = 0;
+	for (auto model : m_Models) numOfPolygons += model->GetPolygonsCount();
+
+	result = m_Text->SetNumOfPolygons(numOfPolygons, m_D3D->GetDeviceContext());
+	if (!result)
+	{
+		return false;
+	}
+
+	result = m_Text->SetScreenSize(screenWidth, screenHeight, m_D3D->GetDeviceContext());
+	if (!result)
+	{
+		return false;
+	}
+
 	// Render the graphics scene.
-	result = Render(rotation);
+	result = Render();
 	if(!result)
 	{
 		return false;
@@ -261,12 +287,18 @@ bool GraphicsClass::Frame(int mouseX, int mouseY)
 	return true;
 }
 
-bool GraphicsClass::Render(float rotation)
+bool GraphicsClass::Render()
 {
-	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
-	D3DXMATRIX objectPosiMatrices[5];
 	bool result;
-
+	const size_t NumOfObject = m_Models.size();
+	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
+	vector<D3DXMATRIX> objectMatrices(m_Models.size());
+	vector<D3DXVECTOR3> positions({
+		{ 1.0f, 1.0f, 1.0f},
+		{ 400.0f, 1.0f, 1.0f},
+		{ 1000.0f, 1.0f, 0.0f},
+	});
+		
 	// Clear the buffers to begin the scene.
 	m_D3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -283,11 +315,11 @@ bool GraphicsClass::Render(float rotation)
 	m_D3D->TurnZBufferOff();
 
 	// Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
-	result = m_Bitmap->Render(m_D3D->GetDeviceContext(), 0, 0);
-	if (!result)
-	{
-		return false;
-	}
+	//result = m_Bitmap->Render(m_D3D->GetDeviceContext(), 0, 0);
+	//if (!result)
+	//{
+	//	return false;
+	//}
 
 	// Render the bitmap with the texture shader.
 	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Bitmap->GetIndexCount(),
@@ -313,20 +345,17 @@ bool GraphicsClass::Render(float rotation)
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_D3D->TurnZBufferOn();
 
-	for (int i = 0; i < 5; ++i) objectPosiMatrices[i] = worldMatrix;
-	D3DXMatrixTranslation(&objectPosiMatrices[0], 0.0f, 0.0f, 0.0f);
-	D3DXMatrixTranslation(&objectPosiMatrices[1], -4.0f, -4.0f, 0.0f);
-	D3DXMatrixTranslation(&objectPosiMatrices[2], 4.0f, 2.0f, 0.0f);
-	D3DXMatrixTranslation(&objectPosiMatrices[3], -4.0f, 2.0f, 0.0f);
-	D3DXMatrixTranslation(&objectPosiMatrices[4], 4.0f, -4.0f, 0.0f);
-		
 	// Put the model vertex and index buffers on the graphics pipeline to prepare them for drawing.
 	for (int i= 0; i < m_Models.size(); ++i)
 	{
+		objectMatrices[i] = worldMatrix;
+		D3DXMatrixTranslation(&objectMatrices[i],
+			positions[i].x, positions[i].y, positions[i].z);
+
 		m_Models[i]->Render(m_D3D->GetDeviceContext());
 		// Render the model using the light shader.
 		result = m_LightShader->Render(m_D3D->GetDeviceContext(), m_Models[i]->GetIndexCount(),
-			objectPosiMatrices[i], viewMatrix, projectionMatrix,
+			objectMatrices[i], viewMatrix, projectionMatrix,
 			m_Models[i]->GetTexture(), m_Light->GetDirection(),
 			m_Light->GetAmbientColor(), m_Light->GetDiffuseColor(), m_Camera->GetPosition(),
 			m_Light->GetSpecularColor(), m_Light->GetSpecularPower());

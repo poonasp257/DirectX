@@ -81,6 +81,10 @@ int ModelClass::GetIndexCount()
 	return m_indexCount;
 }
 
+int ModelClass::GetPolygonsCount()
+{
+	return m_polygonsCount;
+}
 
 ID3D11ShaderResourceView* ModelClass::GetTexture()
 {
@@ -317,6 +321,7 @@ bool ModelClass::LoadModel(char* fileName)
 		return false;
 	}
 	m_indexCount = m_vertexCount = faceCount * 3;
+	m_polygonsCount = faceCount;
 
 	// Initialize the four data structures.
 	vertices = new D3DXVECTOR3[vertexCount];

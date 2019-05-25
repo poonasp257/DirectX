@@ -153,8 +153,10 @@
   <ItemGroup>
     <ClCompile Include="BitmapClass.cpp" />
     <ClCompile Include="CameraClass.cpp" />
+    <ClCompile Include="CPUClass.cpp" />
     <ClCompile Include="fontclass.cpp" />
     <ClCompile Include="fontshaderclass.cpp" />
+    <ClCompile Include="FPSClass.cpp" />
     <ClCompile Include="LightShaderClass.cpp" />
     <ClCompile Include="D3DClass.cpp" />
     <ClCompile Include="GraphicsClass.cpp" />
@@ -167,12 +169,15 @@
     <ClCompile Include="textclass.cpp" />
     <ClCompile Include="TextureClass.cpp" />
     <ClCompile Include="Textureshaderclass.cpp" />
+    <ClCompile Include="TimerClass.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitmapClass.h" />
     <ClInclude Include="CameraClass.h" />
+    <ClInclude Include="CPUClass.h" />
     <ClInclude Include="fontclass.h" />
     <ClInclude Include="fontshaderclass.h" />
+    <ClInclude Include="FPSClass.h" />
     <ClInclude Include="LightShaderClass.h" />
     <ClInclude Include="D3DClass.h" />
     <ClInclude Include="GraphicsClass.h" />
@@ -184,6 +189,7 @@
     <ClInclude Include="textclass.h" />
     <ClInclude Include="TextureClass.h" />
     <ClInclude Include="Textureshaderclass.h" />
+    <ClInclude Include="TimerClass.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="light.ps" />

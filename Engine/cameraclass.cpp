@@ -6,102 +6,143 @@
 
 CameraClass::CameraClass()
 {
-	m_positionX = 0.0f;
-	m_positionY = 0.0f;
-	m_positionZ = 0.0f;
-
-	m_rotationX = 0.0f;
-	m_rotationY = 0.0f;
-	m_rotationZ = 0.0f;
+	m_maxPitch = D3DXToRadian(89.0f);
+	m_maxVelocity = 1.0f;
+	m_invertY = FALSE;
+	m_enableYMovement = TRUE;
+	m_position = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
+	m_rotation = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
+	m_velocity = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_look = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
 }
-
 
 CameraClass::CameraClass(const CameraClass& other)
 {
 }
 
-
 CameraClass::~CameraClass()
 {
 }
 
+void CameraClass::MoveForward(float units)
+{
+	if (m_enableYMovement)
+	{
+		m_velocity += m_look * units;
+	}
+	else
+	{
+		D3DXVECTOR3 moveVector(m_look.x, 0.0f, m_look.z);
+		D3DXVec3Normalize(&moveVector, &moveVector);
+		moveVector *= units;
+		m_velocity += moveVector;
+	}
+}
+
+void CameraClass::Strafe(float units)
+{
+	m_velocity += m_right * units;
+}
+
+void CameraClass::Yaw(float radians)
+{
+	if (radians == 0.0f)
+	{
+		return;
+	}
+	D3DXMATRIX rotation;
+	D3DXMatrixRotationAxis(&rotation, &m_up, radians);
+	D3DXVec3TransformNormal(&m_right, &m_right, &rotation);
+	D3DXVec3TransformNormal(&m_look, &m_look, &rotation);
+}
+
+void CameraClass::Pitch(float radians)
+{
+	if (radians == 0.0f)
+	{
+		return;
+	}
+
+	radians = (m_invertY) ? -radians : radians;
+	m_pitch -= radians;
+	if (m_pitch > m_maxPitch)
+	{
+		radians += m_pitch - m_maxPitch;
+	}
+	else if (m_pitch < -m_maxPitch)
+	{
+		radians += m_pitch + m_maxPitch;
+	}
+
+	D3DXMATRIX rotation;
+	D3DXMatrixRotationAxis(&rotation, &m_right, radians);
+	D3DXVec3TransformNormal(&m_up, &m_up, &rotation);
+	D3DXVec3TransformNormal(&m_look, &m_look, &rotation);
+}
 
 void CameraClass::SetPosition(float x, float y, float z)
 {
-	m_positionX = x;
-	m_positionY = y;
-	m_positionZ = z;
-	return;
+	m_position.x = x;
+	m_position.y = y;
+	m_position.z = z;
 }
 
 
 void CameraClass::SetRotation(float x, float y, float z)
 {
-	m_rotationX = x;
-	m_rotationY = y;
-	m_rotationZ = z;
-	return;
+	m_rotation.x = x;
+	m_rotation.y = y;
+	m_rotation.z = z;
 }
 
 
 D3DXVECTOR3 CameraClass::GetPosition()
 {
-	return D3DXVECTOR3(m_positionX, m_positionY, m_positionZ);
+	return m_position;
 }
-
 
 D3DXVECTOR3 CameraClass::GetRotation()
 {
-	return D3DXVECTOR3(m_rotationX, m_rotationY, m_rotationZ);
+	return m_rotation;
 }
-
 
 void CameraClass::Render()
 {
-	D3DXVECTOR3 up, position, lookAt;
-	float yaw, pitch, roll;
-	D3DXMATRIX rotationMatrix;
+	// Cap velocity to max velocity
+	if (D3DXVec3Length(&m_velocity) > m_maxVelocity)
+	{
+		m_velocity = *(D3DXVec3Normalize(&m_velocity, &m_velocity)) * m_maxVelocity;
+	}
 
+	// Move the camera
+	m_position += m_velocity;
+	// Could decelerate here. I'll just stop completely.
+	m_velocity = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+	m_lookAt = m_position + m_look;
 
-	// Setup the vector that points upwards.
-	up.x = 0.0f;
-	up.y = 1.0f;
-	up.z = 0.0f;
+	// Calculate the new view matrix
+	D3DXVECTOR3 up = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
+	D3DXMatrixLookAtLH(&m_viewMatrix, &m_position, &m_lookAt, &up);
 
-	// Setup the position of the camera in the world.
-	position.x = m_positionX;
-	position.y = m_positionY;
-	position.z = m_positionZ;
+	// Set the camera axes from the view matrix
+	m_right.x = m_viewMatrix._11;
+	m_right.y = m_viewMatrix._21;
+	m_right.z = m_viewMatrix._31;
+	m_up.x = m_viewMatrix._12;
+	m_up.y = m_viewMatrix._22;
+	m_up.z = m_viewMatrix._32;
+	m_look.x = m_viewMatrix._13;
+	m_look.y = m_viewMatrix._23;
+	m_look.z = m_viewMatrix._33;
 
-	// Setup where the camera is looking by default.
-	lookAt.x = 0.0f;
-	lookAt.y = 0.0f;
-	lookAt.z = 1.0f;
-
-	// Set the yaw (Y axis), pitch (X axis), and roll (Z axis) rotations in radians.
-	pitch = m_rotationX * 0.0174532925f;
-	yaw   = m_rotationY * 0.0174532925f;
-	roll  = m_rotationZ * 0.0174532925f;
-
-	// Create the rotation matrix from the yaw, pitch, and roll values.
-	D3DXMatrixRotationYawPitchRoll(&rotationMatrix, yaw, pitch, roll);
-
-	// Transform the lookAt and up vector by the rotation matrix so the view is correctly rotated at the origin.
-	D3DXVec3TransformCoord(&lookAt, &lookAt, &rotationMatrix);
-	D3DXVec3TransformCoord(&up, &up, &rotationMatrix);
-
-	// Translate the rotated camera position to the location of the viewer.
-	lookAt = position + lookAt;
-
-	// Finally create the view matrix from the three updated vectors.
-	D3DXMatrixLookAtLH(&m_viewMatrix, &position, &lookAt, &up);
-
-	return;
+	// Calculate yaw and pitch
+	float lookLengthOnXZ = sqrtf(m_look.z * m_look.z + m_look.x * m_look.x);
+	m_pitch = atan2f(m_look.y, lookLengthOnXZ);
+	m_yaw = atan2f(m_look.x, m_look.z);
 }
 
 
 void CameraClass::GetViewMatrix(D3DXMATRIX& viewMatrix)
 {
 	viewMatrix = m_viewMatrix;
-	return;
 }
