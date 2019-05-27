@@ -233,8 +233,8 @@ bool GraphicsClass::Frame(int fps, float frameTime, int cpu, int screenWidth, in
 	int deltaX, deltaY;
 	m_Input->GetMouseDeltaPosition(deltaX, deltaY);
 
-	m_Camera->Yaw(deltaX * frameTime * 0.0018f);
-	m_Camera->Pitch(deltaY * frameTime * 0.0018f);
+	m_Camera->Yaw(deltaX * frameTime * 0.00018f);
+	m_Camera->Pitch(deltaY * frameTime * 0.00018f);
 
 	if (m_Input->GetKey(KeyCode::W)) m_Camera->MoveForward(cameraSpeed * frameTime);
 	if (m_Input->GetKey(KeyCode::A)) m_Camera->Strafe(-cameraSpeed * frameTime);
@@ -311,6 +311,23 @@ bool GraphicsClass::Render()
 	m_D3D->GetProjectionMatrix(projectionMatrix);
 	m_D3D->GetOrthoMatrix(orthoMatrix);
 
+	// Put the model vertex and index buffers on the graphics pipeline to prepare them for drawing.
+	for (int i = 0; i < m_Models.size(); ++i)
+	{
+		objectMatrices[i] = worldMatrix;
+		D3DXMatrixTranslation(&objectMatrices[i],
+			positions[i].x, positions[i].y, positions[i].z);
+
+		m_Models[i]->Render(m_D3D->GetDeviceContext());
+		// Render the model using the light shader.
+		result = m_LightShader->Render(m_D3D->GetDeviceContext(), m_Models[i]->GetIndexCount(),
+			objectMatrices[i], viewMatrix, projectionMatrix,
+			m_Models[i]->GetTexture(), m_Light->GetDirection(),
+			m_Light->GetAmbientColor(), m_Light->GetDiffuseColor(), m_Camera->GetPosition(),
+			m_Light->GetSpecularColor(), m_Light->GetSpecularPower());
+		if (!result) return false;
+	}
+
 	// Turn off the Z buffer to begin all 2D rendering.
 	m_D3D->TurnZBufferOff();
 
@@ -322,12 +339,12 @@ bool GraphicsClass::Render()
 	//}
 
 	// Render the bitmap with the texture shader.
-	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Bitmap->GetIndexCount(),
-		worldMatrix, viewMatrix, orthoMatrix, m_Bitmap->GetTexture());
-	if (!result)
-	{
-		return false;
-	}
+	//result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Bitmap->GetIndexCount(),
+	//	worldMatrix, viewMatrix, orthoMatrix, m_Bitmap->GetTexture());
+	//if (!result)
+	//{
+	//	return false;
+	//}
 
 	// Turn on the alpha blending before rendering the text.
 	m_D3D->TurnOnAlphaBlending();
@@ -344,23 +361,6 @@ bool GraphicsClass::Render()
 
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_D3D->TurnZBufferOn();
-
-	// Put the model vertex and index buffers on the graphics pipeline to prepare them for drawing.
-	for (int i= 0; i < m_Models.size(); ++i)
-	{
-		objectMatrices[i] = worldMatrix;
-		D3DXMatrixTranslation(&objectMatrices[i],
-			positions[i].x, positions[i].y, positions[i].z);
-
-		m_Models[i]->Render(m_D3D->GetDeviceContext());
-		// Render the model using the light shader.
-		result = m_LightShader->Render(m_D3D->GetDeviceContext(), m_Models[i]->GetIndexCount(),
-			objectMatrices[i], viewMatrix, projectionMatrix,
-			m_Models[i]->GetTexture(), m_Light->GetDirection(),
-			m_Light->GetAmbientColor(), m_Light->GetDiffuseColor(), m_Camera->GetPosition(),
-			m_Light->GetSpecularColor(), m_Light->GetSpecularPower());
-		if (!result) return false;
-	}
 
 	// Present the rendered scene to the screen.
 	m_D3D->EndScene();
